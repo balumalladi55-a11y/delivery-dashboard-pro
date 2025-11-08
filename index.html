@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Delivery Dashboard Pro — Web Edition (Full-Pro)</title>
+
+<!-- Chart.js CDN (for Rider Insight charts) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+/* ========= Material Zen+ Light Precision Theme ========= */
+:root{
+  --primary:#00acc1; --primary-2:#00bcd4; --accent:#4dd0e1;
+  --bg1:#e8fbfb; --bg2:#eef9fb;
+  --card-bg: rgba(255,255,255,0.85);
+  --muted:#5f7d7f; --text:#02393b;
+  --success:#2e7d32; --warn:#f57c00; --danger:#c62828;
+  --shadow: 0 8px 30px rgba(2,36,39,0.06);
+  font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:linear-gradient(135deg,var(--bg1),var(--bg2));color:var(--text)}
+header{
+  background:linear-gradient(90deg,var(--primary),var(--primary-2));
+  color:#fff;padding:14px 16px;box-shadow:var(--shadow);
+}
+header .top{display:flex;align-items:center;gap:12px;justify-content:space-between;max-width:1200px;margin:0 auto}
+header h1{margin:0;font-size:18px}
+nav{display:flex;gap:8px;flex-wrap:wrap}
+nav button{
+  background:transparent;border:1px solid rgba(255,255,255,0.15);color:#fff;padding:8px 12px;border-radius:10px;cursor:pointer;font-weight:700
+}
+nav button.active{background:rgba(255,255,255,0.12)}
+.container{max-width:1200px;margin:20px auto;padding:0 16px}
+.grid {display:grid;gap:14px}
+.grid.cols-3 {grid-template-columns:repeat(3,1fr)}
+.card{
+  background:var(--card-bg);padding:12px;border-radius:12px;box-shadow:var(--shadow);
+  border:1px solid rgba(255,255,255,0.3)
+}
+.section {margin-top:14px}
+.quick-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.kpi{background:#fff;border-radius:12px;padding:12px;text-align:center;box-shadow:0 6px 18px rgba(0,0,0,0.04)}
+.kpi small{display:block;color:var(--muted);font-weight:700}
+.kpi .value{font-size:20px;font-weight:900;margin-top:6px}
+
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.controls .btn{padding:8px 10px;border-radius:8px;border:none;background:var(--primary);color:#fff;cursor:pointer;font-weight:800}
+.controls .btn.ghost{background:transparent;border:1px solid #cfeff1;color:var(--text)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.input{padding:8px;border-radius:8px;border:1px solid #e4f4f5;background:#fff;min-width:120px}
+
+.rider-chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:20px;background:linear-gradient(90deg,#e6f7f8,#f4ffff);margin:4px;box-shadow:0 4px 10px rgba(2,36,39,0.04)}
+.rider-chip .rm{cursor:pointer;color:#c62828;margin-left:6px;font-weight:800}
+
+.table{width:100%;border-collapse:collapse;margin-top:8px}
+.table th,.table td{padding:8px 10px;border-bottom:1px solid #f1f7f8;text-align:left}
+.table th{background:linear-gradient(90deg,#f7feff,#ffffff);font-weight:800}
+
+.small-muted{color:var(--muted);font-size:13px}
+.badge{display:inline-block;padding:4px 8px;border-radius:8px;background:#fff;font-weight:700}
+
+.footer{color:#064a50;text-align:center;padding:14px;margin-top:18px;background:transparent;border-top:1px solid rgba(2,36,39,0.03)}
+
+/* responsive */
+@media (max-width:900px){
+  header .top{flex-direction:column;align-items:flex-start;gap:8px}
+  .grid.cols-3{grid-template-columns:1fr}
+}
+/* tiny helpers */
+.center{display:flex;justify-content:center;align-items:center}
+.percent-chip{padding:6px 8px;border-radius:8px;font-weight:900}
+.green{background:#e6f4ea;color:#137333}
+.yellow{background:#fff7e6;color:#bf6e00}
+.red{background:#fff0f0;color:#b71c1c}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="top">
+    <div>
+      <h1>🚚 Delivery Dashboard Pro — Web (Full-Pro)</h1>
+      <div class="small-muted">Material Zen+ Light Precision Edition</div>
+    </div>
+
+    <nav id="nav">
+      <button data-section="quick" class="active">Quick View</button>
+      <button data-section="manage">Manage & Entry</button>
+      <button data-section="cash">Cash Management</button>
+      <button data-section="insight">Rider Insight</button>
+      <button data-section="logs">Logs</button>
+      <button data-section="settings">Settings</button>
+    </nav>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- QUICK VIEW -->
+  <section id="quick" class="section card">
+    <h2>Quick View — Today</h2>
+    <div class="quick-cards" id="quickCards">
+      <div class="kpi"><small>Total Deliveries Assigned</small><div class="value" id="q_del_assigned">0</div></div>
+      <div class="kpi"><small>Total Delivered</small><div class="value" id="q_del_done">0</div></div>
+      <div class="kpi"><small>Total Pickups Assigned</small><div class="value" id="q_pick_assigned">0</div></div>
+      <div class="kpi"><small>Total Pickups Done</small><div class="value" id="q_pick_done">0</div></div>
+      <div class="kpi"><small>Cash Collected (Valmo + Xpressbess)</small><div class="value" id="q_cash_total">₹0</div></div>
+      <div class="kpi"><small>Physical Cash</small><div class="value" id="q_cash_physical">₹0</div></div>
+      <div class="kpi"><small>UPI Pending</small><div class="value" id="q_cash_upi">₹0</div></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="refreshQuick">Refresh</button>
+      <button class="btn ghost" id="snapshotYesterday">Show Yesterday Snapshot</button>
+      <div class="small-muted" id="quickNote">Auto-reset at midnight; snapshots saved daily</div>
+    </div>
+    <div id="yesterdayPanel" style="margin-top:10px;display:none" class="card">
+      <strong>Yesterday Snapshot:</strong>
+      <div id="yesterdayData" class="small-muted"></div>
+    </div>
+  </section>
+
+  <!-- MANAGE & ENTRY -->
+  <section id="manage" class="section card" style="display:none">
+    <h2>Manage Riders</h2>
+    <div class="row">
+      <input id="riderName" class="input" placeholder="Rider name">
+      <input id="riderDeliveryRate" class="input" placeholder="Delivery rate (₹)" type="number">
+      <input id="riderPickupRate" class="input" placeholder="Pickup rate (₹)" type="number">
+      <button class="btn" id="addRiderBtn">Add Rider</button>
+    </div>
+    <div style="margin-top:10px" id="riderChips"></div>
+
+    <hr style="margin:12px 0">
+
+    <h3>Entry</h3>
+    <div class="row">
+      <select id="entryRider" class="input"><option value="">-- select rider --</option></select>
+      <input id="assignedCount" class="input" type="number" placeholder="Deliveries assigned">
+      <input id="deliveredCount" class="input" type="number" placeholder="Delivered">
+      <input id="pickupAssigned" class="input" type="number" placeholder="Pickups assigned">
+      <input id="pickupDone" class="input" type="number" placeholder="Picked">
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="saveEntry">Save Entry</button>
+      <button class="btn ghost" id="viewRecentLogs">View Recent Logs</button>
+    </div>
+
+    <div id="entryLogs" style="margin-top:12px"></div>
+  </section>
+
+  <!-- CASH MANAGEMENT -->
+  <section id="cash" class="section card" style="display:none">
+    <h2>Cash Management</h2>
+    <div class="grid cols-3">
+      <div class="card">
+        <h4>Daily Cash Entry</h4>
+        <div class="row">
+          <select id="cashRiderSelect" class="input"><option value="">-- select rider --</option></select>
+          <input id="valmoInput" class="input" type="number" placeholder="Valmo cash">
+          <input id="xpressInput" class="input" type="number" placeholder="Xpressbess cash">
+          <input id="handedInput" class="input" type="number" placeholder="Cash handed over">
+        </div>
+        <div style="margin-top:10px" class="row">
+          <button class="btn" id="validateCashBtn">Validate</button>
+          <button class="btn ghost" id="clearDailyCash">Clear Today's Cash</button>
+        </div>
+        <div style="margin-top:8px" id="cashValidateOutput" class="small-muted"></div>
+      </div>
+
+      <div class="card">
+        <h4>Advances</h4>
+        <div class="row">
+          <select id="advRider" class="input"><option value="">-- select rider --</option></select>
+          <input id="advAmount" class="input" type="number" placeholder="Amount">
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="giveAdvance">Record Advance</button>
+          <button class="btn ghost" id="repayAdvance">Record Repayment</button>
+        </div>
+        <div style="margin-top:8px" id="advList" class="small-muted"></div>
+      </div>
+
+      <div class="card">
+        <h4>Summary</h4>
+        <div id="cashSummary" class="small-muted"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIDER INSIGHT -->
+  <section id="insight" class="section card" style="display:none">
+    <h2>Rider Insight</h2>
+    <div class="row">
+      <label class="small-muted">Delivery weight</label>
+      <input id="wDelivery" type="range" min="0" max="100" value="60">
+      <span id="wDeliveryVal" class="badge">60%</span>
+      <label class="small-muted">Pickup weight</label>
+      <input id="wPickup" type="range" min="0" max="100" value="40">
+      <span id="wPickupVal" class="badge">40%</span>
+      <button class="btn" id="refreshInsight">Refresh</button>
+    </div>
+
+    <div style="margin-top:12px">
+      <canvas id="insightChart" height="90"></canvas>
+    </div>
+
+    <div id="insightList" style="margin-top:12px"></div>
+  </section>
+
+  <!-- LOGS -->
+  <section id="logs" class="section card" style="display:none">
+    <h2>Logs</h2>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <select id="logsRiderFilter" class="input"><option value="all">All Riders</option></select>
+      <input id="logsFrom" type="date" class="input">
+      <input id="logsTo" type="date" class="input">
+      <select id="logsType" class="input">
+        <option value="all">All</option><option value="entry">Entries</option><option value="cash">Cash</option><option value="advance">Advance</option>
+      </select>
+      <input id="logsKeyword" class="input" placeholder="Keyword">
+      <button class="btn" id="runLogs">Search</button>
+      <button class="btn ghost" id="exportCSV">Export CSV</button>
+      <button class="btn ghost" id="resetLogsFilters">Reset</button>
+    </div>
+
+    <div id="logsResults" style="margin-top:12px"></div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="settings" class="section card" style="display:none">
+    <h2>Settings & Maintenance</h2>
+
+    <div style="margin-top:8px">
+      <label>Theme:</label>
+      <select id="themeSelect" class="input">
+        <option value="light">Light</option>
+        <option value="dark">Dark</option>
+      </select>
+
+      <label style="margin-left:12px">Default Page</label>
+      <select id="defaultPage" class="input">
+        <option value="quick">Quick View</option>
+        <option value="manage">Manage & Entry</option>
+        <option value="cash">Cash Management</option>
+        <option value="insight">Rider Insight</option>
+        <option value="logs">Logs</option>
+      </select>
+    </div>
+
+    <hr>
+
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <button class="btn" id="exportAllData">Export All Data (JSON)</button>
+      <input type="file" id="importFile" style="display:none">
+      <button class="btn ghost" id="importAllData">Import Data (JSON)</button>
+      <button class="btn ghost" id="clearAllData">Clear All Data</button>
+      <div id="settingsMsg" class="small-muted" style="margin-left:8px"></div>
+    </div>
+
+    <div style="margin-top:12px" id="healthCard" class="card">
+      <h4>System Health Monitor</h4>
+      <div id="healthSummary" class="small-muted"></div>
+      <div style="height:8px;background:#eaf7f7;border-radius:8px;margin-top:8px;overflow:hidden">
+        <div id="healthBar" style="height:8px;width:0%;background:var(--primary)"></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer">Delivery Dashboard Pro v7.0 — Material Zen+ Light Precision Edition</div>
+</div>
+
+<script>
+/* ======= Utilities & Storage Keys ======= */
+const KEYS = {
+  riders: 'dd_riders_v1',
+  entries: 'dd_entries_v1',
+  cash: 'dd_cash_v1',
+  advances: 'dd_adv_v1',
+  quickTotals: 'dd_quick_v1',
+  settings: 'dd_settings_v1',
+  snapshots: 'dd_snapshots_v1',
+  meta: 'dd_meta_v1'
+};
+
+// safe load/save
+const load = (k, def) => JSON.parse(localStorage.getItem(k) || JSON.stringify(def));
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+// simple unique id
+const uid = () => Math.random().toString(36).slice(2,9);
+
+/* ======= Initial Data Load ======= */
+let riders = load(KEYS.riders, []); // [{id,name,delRate,pickRate}]
+let entries = load(KEYS.entries, []); // entry objects
+let cashLogs = load(KEYS.cash, []); // daily cash objects
+let advanceLogs = load(KEYS.advances, []); // advance/repay objects
+let quickTotals = load(KEYS.quickTotals, {dA:0,dD:0,pA:0,pD:0,cashTotal:0,physical:0,upi:0});
+let settings = load(KEYS.settings, {theme:'light', defaultPage:'quick', deliveryWeight:60, pickupWeight:40});
+let snapshots = load(KEYS.snapshots, []); // daily snapshots
+let meta = load(KEYS.meta, {lastActiveDate: null});
+
+/* ======= DOM Shortcuts ======= */
+const sections = ['quick','manage','cash','insight','logs','settings'];
+const nav = document.getElementById('nav');
+nav.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>showSection(btn.dataset.section));
+});
+
+function showSection(name){
+  sections.forEach(s=>document.getElementById(s).style.display = s===name ? 'block' : 'none');
+  // set active
+  nav.querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.section===name));
+  // save default
+  settings.defaultPage = name;
+  save(KEYS.settings, settings);
+}
+showSection(settings.defaultPage || 'quick');
+
+/* ======= THEME ======= */
+const themeSelect = document.getElementById('themeSelect');
+function applyTheme(){
+  if(settings.theme === 'dark'){
+    document.documentElement.style.setProperty('--bg1','#0f1720');
+    document.documentElement.style.setProperty('--bg2','#0b1418');
+    document.documentElement.style.setProperty('--card-bg','rgba(8,10,12,0.85)');
+    document.documentElement.style.setProperty('--text','#dff8fb');
+  } else {
+    location.reload(); // simple approach to restore original vars (since all started light)
+  }
+}
+themeSelect.value = settings.theme;
+themeSelect.addEventListener('change', ()=>{ settings.theme = themeSelect.value; save(KEYS.settings, settings); applyTheme(); });
+
+/* ======= Quick View ======= */
+function refreshQuickView(){
+  // compute totals from entries and cash logs for today
+  const today = (new Date()).toISOString().split('T')[0];
+  const todaysEntries = entries.filter(e => e.date === today);
+  const todaysCash = cashLogs.filter(c => c.date === today);
+
+  // totals
+  const totals = {dA:0,dD:0,pA:0,pD:0,cashTotal:0,physical:0,upi:0};
+  todaysEntries.forEach(e => {
+    totals.dA += Number(e.assigned || 0);
+    totals.dD += Number(e.delivered || 0);
+    totals.pA += Number(e.pickAssigned || 0);
+    totals.pD += Number(e.pickDone || 0);
+  });
+  todaysCash.forEach(c => {
+    totals.cashTotal += (Number(c.valmo || 0) + Number(c.xpress || 0));
+    totals.physical += Number(c.handed || 0);
+    totals.upi += Number(c.pending || 0) || 0;
+  });
+
+  // save quickTotals
+  quickTotals = totals;
+  save(KEYS.quickTotals, quickTotals);
+
+  // write to DOM
+  document.getElementById('q_del_assigned').textContent = totals.dA;
+  document.getElementById('q_del_done').textContent = totals.dD;
+  document.getElementById('q_pick_assigned').textContent = totals.pA;
+  document.getElementById('q_pick_done').textContent = totals.pD;
+  document.getElementById('q_cash_total').textContent = '₹' + totals.cashTotal;
+  document.getElementById('q_cash_physical').textContent = '₹' + totals.physical;
+  document.getElementById('q_cash_upi').textContent = '₹' + totals.upi;
+}
+document.getElementById('refreshQuick').onclick = refreshQuickView;
+
+/* Yesterday Snapshot panel */
+document.getElementById('snapshotYesterday').onclick = ()=>{
+  const last = snapshots[snapshots.length-1];
+  if(!last){ alert('No snapshot available yet'); return; }
+  document.getElementById('yesterdayPanel').style.display = 'block';
+  document.getElementById('yesterdayData').textContent = JSON.stringify(last);
+};
+
+/* ======= Manage Riders & Entry ======= */
+function renderRidersUI(){
+  const chips = document.getElementById('riderChips');
+  chips.innerHTML = '';
+  const sel = document.getElementById('entryRider');
+  const cashSel = document.getElementById('cashRiderSelect');
+  const advSel = document.getElementById('advRider');
+  const logsFilter = document.getElementById('logsRiderFilter');
+  [sel,cashSel,advSel,logsFilter].forEach(e=>{
+    if(e) e.innerHTML = "<option value=''>-- select rider --</option>";
+  });
+
+  riders.forEach(r=>{
+    // chips
+    const chip = document.createElement('div');
+    chip.className = 'rider-chip';
+    chip.innerHTML = `<strong>${r.name}</strong> • D ₹${r.delRate || 0} • P ₹${r.pickRate || 0}
+      <span style="margin-left:8px" class="rm" data-id="${r.id}">✖</span>`;
+    chips.appendChild(chip);
+    // selects
+    [sel,cashSel,advSel,logsFilter].forEach(e=>{
+      if(e) e.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name}</option>`);
+    });
+  });
+
+  // delete action
+  chips.querySelectorAll('.rm').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.id;
+      if(!confirm('Delete rider?')) return;
+      riders = riders.filter(x=>x.id !== id);
+      save(KEYS.riders, riders);
+      renderRidersUI();
+    });
+  });
+}
+document.getElementById('addRiderBtn').onclick = ()=>{
+  const name = document.getElementById('riderName').value.trim();
+  const delRate = Number(document.getElementById('riderDeliveryRate').value) || 0;
+  const pickRate = Number(document.getElementById('riderPickupRate').value) || 0;
+  if(!name) return alert('Enter rider name');
+  const r = {id: uid(), name, delRate, pickRate};
+  riders.push(r); save(KEYS.riders, riders);
+  renderRidersUI();
+  document.getElementById('riderName').value=''; document.getElementById('riderDeliveryRate').value=''; document.getElementById('riderPickupRate').value='';
+};
+renderRidersUI();
+
+/* Save entry logic */
+document.getElementById('saveEntry').onclick = ()=>{
+  const riderId = document.getElementById('entryRider').value;
+  if(!riderId) return alert('Select a rider');
+  const assigned = Number(document.getElementById('assignedCount').value) || 0;
+  const delivered = Number(document.getElementById('deliveredCount').value) || 0;
+  const pickAssigned = Number(document.getElementById('pickupAssigned').value) || 0;
+  const pickDone = Number(document.getElementById('pickupDone').value) || 0;
+  const rider = riders.find(r=>r.id === riderId);
+  const earned = (delivered * (rider?.delRate || 0)) + (pickDone * (rider?.pickRate || 0));
+  const now = new Date();
+  const rec = {id: uid(), riderId, riderName: rider.name, assigned, delivered, pickAssigned, pickDone, earned, time: now.toLocaleString(), date: now.toISOString().split('T')[0]};
+  entries.push(rec); save(KEYS.entries, entries);
+  // update quick totals too (so quick shows live)
+  refreshQuickView();
+  alert('Entry saved — earned ₹' + earned);
+  // clear inputs
+  ['assignedCount','deliveredCount','pickupAssigned','pickupDone'].forEach(id=>document.getElementById(id).value='');
+};
+
+/* Recent logs */
+document.getElementById('viewRecentLogs').onclick = ()=>{
+  const recent = entries.slice(-10).reverse();
+  const div = document.getElementById('entryLogs');
+  if(!recent.length) return div.innerHTML = '<div class="small-muted">No entries yet</div>';
+  const html = recent.map(e=>`<div class="card" style="margin:6px 0">${e.time} — <strong>${e.riderName}</strong> D:${e.delivered}/${e.assigned} P:${e.pickDone}/${e.pickAssigned} Earned: ₹${e.earned}
+    <button data-id="${e.id}" style="margin-left:8px" class="btn ghost">Delete</button></div>`).join('');
+  div.innerHTML = html;
+  // delete buttons
+  div.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const id = b.dataset.id;
+      if(!confirm('Delete this entry?')) return;
+      entries = entries.filter(x=>x.id !== id); save(KEYS.entries, entries);
+      b.closest('.card').remove();
+      refreshQuickView();
+    });
+  });
+};
+
+/* ======= Cash Management ======= */
+function renderCashSelectors(){
+  const cashSel = document.getElementById('cashRiderSelect');
+  const advSel = document.getElementById('advRider');
+  [cashSel,advSel].forEach(s=>{
+    if(s) s.innerHTML = "<option value=''>-- select rider --</option>";
+  });
+  riders.forEach(r=>{
+    [cashSel,advSel].forEach(s=>{
+      if(s) s.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name}</option>`);
+    });
+  });
+}
+renderCashSelectors();
+
+document.getElementById('validateCashBtn').onclick = ()=>{
+  const rId = document.getElementById('cashRiderSelect').value;
+  if(!rId) return alert('Select rider');
+  const valmo = Number(document.getElementById('valmoInput').value) || 0;
+  const xpress = Number(document.getElementById('xpressInput').value) || 0;
+  const handed = Number(document.getElementById('handedInput').value) || 0;
+  const total = valmo + xpress;
+  const pending = total - handed;
+  const now = new Date();
+  const rec = {id: uid(), riderId: rId, riderName: riders.find(x=>x.id===rId).name, valmo, xpress, handed, pending, time: now.toLocaleString(), date: now.toISOString().split('T')[0]};
+  cashLogs.push(rec); save(KEYS.cash, cashLogs);
+  document.getElementById('cashValidateOutput').textContent = `Total ₹${total} • Pending UPI ₹${pending}`;
+  refreshQuickView(); renderCashSummary();
+  // clear inputs
+  document.getElementById('valmoInput').value=''; document.getElementById('xpressInput').value=''; document.getElementById('handedInput').value='';
+};
+
+document.getElementById('clearDailyCash').onclick = ()=>{
+  if(!confirm('Clear today cash logs?')) return;
+  const today = (new Date()).toISOString().split('T')[0];
+  cashLogs = cashLogs.filter(c => c.date !== today); save(KEYS.cash, cashLogs);
+  refreshQuickView(); renderCashSummary();
+};
+
+function renderCashSummary(){
+  const totalCash = cashLogs.reduce((s,c)=>s + Number(c.valmo || 0) + Number(c.xpress || 0), 0);
+  const totalHanded = cashLogs.reduce((s,c)=>s + Number(c.handed || 0), 0);
+  const pending = totalCash - totalHanded;
+  document.getElementById('cashSummary').innerHTML = `Collected: ₹${totalCash} • Handed: ₹${totalHanded} • Pending: ₹${pending}`;
+}
+renderCashSummary();
+
+/* Advances */
+document.getElementById('giveAdvance').onclick = ()=>{
+  const rId = document.getElementById('advRider').value; if(!rId) return alert('Select rider');
+  const amt = Number(document.getElementById('advAmount').value) || 0; if(!amt) return alert('Enter amount');
+  const now = new Date();
+  const rec = {id: uid(), type:'advance', riderId:rId, riderName:riders.find(x=>x.id===rId).name, amount:amt, time: now.toLocaleString(), date: now.toISOString().split('T')[0]};
+  advanceLogs.push(rec); save(KEYS.advances, advanceLogs);
+  renderAdvList();
+  document.getElementById('advAmount').value='';
+};
+document.getElementById('repayAdvance').onclick = ()=>{
+  const rId = document.getElementById('advRider').value; if(!rId) return alert('Select rider');
+  const amt = Number(document.getElementById('advAmount').value) || 0; if(!amt) return alert('Enter amount');
+  const now = new Date();
+  const rec = {id: uid(), type:'repay', riderId:rId, riderName:riders.find(x=>x.id===rId).name, amount:amt, time: now.toLocaleString(), date: now.toISOString().split('T')[0]};
+  advanceLogs.push(rec); save(KEYS.advances, advanceLogs);
+  renderAdvList();
+  document.getElementById('advAmount').value='';
+};
+
+function renderAdvList(){
+  const el = document.getElementById('advList');
+  const pending = {};
+  advanceLogs.forEach(a=>{
+    pending[a.riderId] = pending[a.riderId] || 0;
+    pending[a.riderId] += (a.type === 'advance' ? a.amount : -a.amount);
+  });
+  const html = Object.entries(pending).map(([id,amt])=>{
+    const name = (riders.find(r=>r.id===id) || {}).name || 'Unknown';
+    const cls = amt>0 ? 'red' : (amt<0 ? 'green' : '');
+    return `<div>${name}: <strong class="${cls}">₹${amt}</strong></div>`;
+  }).join('');
+  el.innerHTML = html || 'No advances.';
+}
+renderAdvList();
+
+/* ======= Rider Insight (charts & rankings) ======= */
+const insightChartCtx = document.getElementById('insightChart').getContext('2d');
+let insightChart = null;
+
+function calcInsight(){
+  // aggregate by rider over entries (all time or filter)
+  const sum = {};
+  entries.forEach(e=>{
+    sum[e.riderId] = sum[e.riderId] || {name:e.riderName, delivered:0, assigned:0, picked:0, pickAssigned:0, earned:0};
+    sum[e.riderId].delivered += Number(e.delivered || 0);
+    sum[e.riderId].assigned += Number(e.assigned || 0);
+    sum[e.riderId].picked += Number(e.pickDone || 0);
+    sum[e.riderId].pickAssigned += Number(e.pickAssigned || 0);
+    sum[e.riderId].earned += Number(e.earned || 0);
+  });
+  const ids = Object.keys(sum);
+  const labels = ids.map(id=>sum[id].name);
+  const deliveryPct = ids.map(id => sum[id].assigned ? (sum[id].delivered / sum[id].assigned * 100).toFixed(1) : 0);
+  const pickupPct = ids.map(id => sum[id].pickAssigned ? (sum[id].picked / sum[id].pickAssigned * 100).toFixed(1) : 0);
+  // chart
+  if(insightChart) insightChart.destroy();
+  insightChart = new Chart(insightChartCtx, {
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        {label:'Delivery %', data: deliveryPct, backgroundColor:'rgba(0,172,193,0.6)'},
+        {label:'Pickup %', data: pickupPct, backgroundColor:'rgba(0,188,212,0.5)'}
+      ]
+    },
+    options:{scales:{y:{beginAtZero:true, max:100}}}
+  });
+  // ranking HTML
+  const list = ids.map(id=>{
+    const o = sum[id];
+    const d = o.assigned ? (o.delivered / o.assigned * 100) : 0;
+    const p = o.pickAssigned ? (o.picked / o.pickAssigned * 100) : 0;
+    const overall = (d*(settings.deliveryWeight/100) + p*(settings.pickupWeight/100)).toFixed(1);
+    return {id, name:o.name, d,p,overall,earned:o.earned};
+  }).sort((a,b) => b.overall - a.overall);
+  const html = list.map((r,i)=>`<div class="card" style="margin:6px 0">${i+1}. <strong>${r.name}</strong> — Delivery ${Number(r.d).toFixed(1)}% • Pickup ${Number(r.p).toFixed(1)}% • Overall ${r.overall}% • Earned ₹${r.earned}</div>`).join('');
+  document.getElementById('insightList').innerHTML = html || '<div class="small-muted">No data</div>';
+}
+document.getElementById('refreshInsight').onclick = calcInsight;
+// weight sliders
+const wDelivery = document.getElementById('wDelivery'), wPickup = document.getElementById('wPickup');
+wDelivery.addEventListener('input', ()=>{document.getElementById('wDeliveryVal').textContent = wDelivery.value + '%'; settings.deliveryWeight = Number(wDelivery.value); settings.pickupWeight = 100 - Number(wDelivery.value); wPickup.value = settings.pickupWeight; document.getElementById('wPickupVal').textContent = wPickup.value + '%'; save(KEYS.settings, settings);});
+wPickup.addEventListener('input', ()=>{document.getElementById('wPickupVal').textContent = wPickup.value + '%'; settings.pickupWeight = Number(wPickup.value); settings.deliveryWeight = 100 - Number(wPickup.value); wDelivery.value = settings.deliveryWeight; document.getElementById('wDeliveryVal').textContent = wDelivery.value + '%'; save(KEYS.settings, settings);});
+
+/* ======= Logs (search/filter/export) ======= */
+function renderLogsResults(list){
+  const out = list.map(x=>{
+    if(x.type === 'cash') return `${x.time} | CASH | ${x.riderName} | Valmo:${x.valmo} Xpress:${x.xpress} Handed:${x.handed} Pending:${x.pending}`;
+    if(x.type === 'advance' || x.type === 'repay') return `${x.time} | ADV | ${x.riderName} | ${x.type} ₹${x.amount}`;
+    // else entry
+    return `${x.time} | ENTRY | ${x.riderName} | D:${x.delivered}/${x.assigned} P:${x.pickDone}/${x.pickAssigned} Earned:₹${x.earned}`;
+  }).join('\n');
+  document.getElementById('logsResults').innerHTML = `<pre>${out || 'No results'}</pre>`;
+}
+
+document.getElementById('runLogs').onclick = ()=>{
+  const rid = document.getElementById('logsRiderFilter').value;
+  const from = document.getElementById('logsFrom').value;
+  const to = document.getElementById('logsTo').value;
+  const type = document.getElementById('logsType').value;
+  const kw = document.getElementById('logsKeyword').value.trim().toLowerCase();
+
+  // build unified list
+  const unified = [];
+  entries.forEach(e=> unified.push({...e, type:'entry'}));
+  cashLogs.forEach(c=> unified.push({...c, type:'cash'}));
+  advanceLogs.forEach(a=> unified.push({...a, type: a.type}));
+
+  let list = unified;
+  if(rid && rid !== 'all') list = list.filter(x=>x.riderId === rid);
+  if(type && type !== 'all') list = list.filter(x=>x.type === type);
+  if(from) list = list.filter(x=> x.date >= from);
+  if(to) list = list.filter(x=> x.date <= to);
+  if(kw) list = list.filter(x=> JSON.stringify(x).toLowerCase().includes(kw));
+  // sort desc
+  list.sort((a,b)=> new Date(b.time) - new Date(a.time));
+  renderLogsResults(list);
+};
+
+document.getElementById('exportCSV').onclick = ()=>{
+  // export entries as CSV
+  if(!entries.length) return alert('No entries to export');
+  const headers = ['time','riderName','assigned','delivered','pickAssigned','pickDone','earned','date'];
+  const csv = [headers.join(',')].concat(entries.map(e=>[e.time,e.riderName,e.assigned,e.delivered,e.pickAssigned,e.pickDone,e.earned,e.date].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))).join('\n');
+  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'entries_export.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+};
+
+/* ======= Settings: export/import/clear ======= */
+document.getElementById('exportAllData').onclick = ()=>{
+  const payload = {riders, entries, cashLogs, advanceLogs, quickTotals, settings, snapshots, meta};
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'dd_backup_' + (new Date().toISOString().slice(0,10)) + '.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+  document.getElementById('settingsMsg').textContent = 'Exported to JSON';
+  // record last backup
+  settings.lastBackup = new Date().toISOString(); save(KEYS.settings, settings);
+  updateHealth();
+};
+
+document.getElementById('importAllData').onclick = ()=> document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader(); reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(data.riders) { riders = data.riders; save(KEYS.riders, riders); }
+      if(data.entries) { entries = data.entries; save(KEYS.entries, entries); }
+      if(data.cashLogs) { cashLogs = data.cashLogs; save(KEYS.cash, cashLogs); }
+      if(data.advanceLogs) { advanceLogs = data.advanceLogs; save(KEYS.advances, advanceLogs); }
+      if(data.settings) { settings = data.settings; save(KEYS.settings, settings); }
+      document.getElementById('settingsMsg').textContent = 'Import succeeded';
+      renderRidersUI(); renderCashSelectors(); refreshQuickView(); renderCashSummary(); renderAdvList();
+    }catch(err){ document.getElementById('settingsMsg').textContent = 'Invalid JSON'; }
+  }; reader.readAsText(file);
+});
+
+document.getElementById('clearAllData').onclick = ()=>{
+  if(!confirm('Clear ALL stored data? This will delete riders, logs, cash and settings.')) return;
+  ['dd_riders_v1','dd_entries_v1','dd_cash_v1','dd_adv_v1','dd_quick_v1','dd_settings_v1','dd_snapshots_v1','dd_meta_v1'].forEach(k=>localStorage.removeItem(k));
+  location.reload();
+};
+
+/* ======= System Health Monitor ======= */
+function calcStorageUsage(){
+  let used = 0;
+  for(let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    used += key.length + (localStorage.getItem(key) || '').length;
+  }
+  const total = 5 * 1024 * 1024; // 5MB
+  return {used, total, pct: Math.round((used/total)*100)};
+}
+function updateHealth(){
+  const health = calcStorageUsage();
+  document.getElementById('healthSummary').textContent = `Storage used: ${Math.round(health.used/1024)} KB (${health.pct}%) • Riders: ${riders.length} • Entries: ${entries.length} • Cash: ${cashLogs.length} • Advances: ${advanceLogs.length}`;
+  document.getElementById('healthBar').style.width = Math.min(100, health.pct) + '%';
+  // backup freshness
+  const lastBackup = settings.lastBackup ? new Date(settings.lastBackup) : null;
+  if(lastBackup){
+    const days = Math.floor((Date.now() - lastBackup.getTime()) / (1000*60*60*24));
+    if(days > 7) document.getElementById('settingsMsg').textContent = `⚠️ Last backup ${days} days ago`;
+  }
+}
+updateHealth();
+
+/* ======= Daily Snapshot & Reset ======= */
+function saveDailySnapshotIfNeeded(){
+  const today = (new Date()).toISOString().split('T')[0];
+  if(meta.lastActiveDate && meta.lastActiveDate !== today){
+    // create snapshot from previous day quickTotals (if exists)
+    const snap = {date:meta.lastActiveDate, totals: quickTotals, entriesCount: entries.filter(e=>e.date===meta.lastActiveDate).length, cashCount: cashLogs.filter(c=>c.date===meta.lastActiveDate).length};
+    snapshots.push(snap);
+    if(snapshots.length > 14) snapshots.shift();
+    save(KEYS.snapshots, snapshots);
+  }
+  meta.lastActiveDate = today; save(KEYS.meta, meta);
+  // perform UI reset for quick totals
+  // clear quickTotals item for new day
+  localStorage.removeItem(KEYS.quickTotals);
+  quickTotals = {dA:0,dD:0,pA:0,pD:0,cashTotal:0,physical:0,upi:0};
+  refreshQuickView(); updateHealth();
+}
+/* run check on load */
+(function checkDaily(){
+  const today = (new Date()).toISOString().split('T')[0];
+  if(meta.lastActiveDate !== today) saveDailySnapshotIfNeeded();
+})();
+setInterval(()=>{ // check every 15 minutes in case browser open across midnight
+  const today = (new Date()).toISOString().split('T')[0];
+  if(meta.lastActiveDate !== today) saveDailySnapshotIfNeeded();
+}, 15*60*1000);
+
+/* ======= Init UI Refreshes ======= */
+refreshQuickView(); renderRidersUI(); renderCashSelectors(); renderCashSummary(); renderAdvList(); calcInsight();
+
+/* ======= Auto UI wiring on page load ======= */
+// wire logsFilter options to riders
+function populateLogRiders(){
+  const sel = document.getElementById('logsRiderFilter');
+  sel.innerHTML = '<option value="all">All Riders</option>';
+  riders.forEach(r=> sel.insertAdjacentHTML('beforeend', `<option value="${r.id}">${r.name}</option>`));
+}
+populateLogRiders();
+
+/* ======= Simple helpers ======= */
+document.getElementById('resetLogsFilters').onclick = ()=>{
+  document.getElementById('logsRiderFilter').value = 'all';
+  document.getElementById('logsFrom').value = '';
+  document.getElementById('logsTo').value = '';
+  document.getElementById('logsType').value = 'all';
+  document.getElementById('logsKeyword').value = '';
+  document.getElementById('logsResults').innerHTML = '';
+};
+
+/* export convenience on page unload */
+window.addEventListener('beforeunload', ()=> {
+  save(KEYS.riders, riders); save(KEYS.entries, entries);
+  save(KEYS.cash, cashLogs); save(KEYS.advances, advanceLogs);
+  save(KEYS.quickTotals, quickTotals); save(KEYS.settings, settings);
+  save(KEYS.snapshots, snapshots); save(KEYS.meta, meta);
+});
+</script>
+</body>
+</html>
